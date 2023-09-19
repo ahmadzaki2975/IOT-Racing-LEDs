@@ -10,7 +10,10 @@
 
 // Queue handle
 QueueHandle_t uartQueue;
-QueueHandle_t ledQueue;
+QueueHandle_t led1Queue;
+QueueHandle_t led2Queue;
+QueueHandle_t led3Queue;
+QueueHandle_t led4Queue;
 
 // Definisi PIN UART
 #define TX_PIN 1
@@ -51,14 +54,11 @@ void BlinkLED1(void *pvParameters)
   while (1)
   {
     char queueData[64];
-    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(1000)) == pdPASS)
+    if (xQueueReceive(led1Queue, &queueData, pdMS_TO_TICKS(100)) == pdPASS)
     {
-      if (queueData[0] == '1')
-      {
-        shiftString(queueData);
-        period = atoi(queueData);
-        printf("Period of LED 1 changed to: %i\n", period);
-      }
+      shiftString(queueData);
+      period = atoi(queueData);
+      printf("Period of LED 1 changed to: %i\n", period);
     }
     gpio_set_level(LED1, 0);
     vTaskDelay(period / portTICK_PERIOD_MS);
@@ -77,14 +77,11 @@ void BlinkLED2(void *pvParameters)
   while (1)
   {
     char queueData[64];
-    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(1000)) == pdPASS)
+    if (xQueueReceive(led2Queue, &queueData, pdMS_TO_TICKS(100)) == pdPASS)
     {
-      if (queueData[0] == '2')
-      {
-        shiftString(queueData);
-        period = atoi(queueData);
-        printf("Period of LED 2 changed to: %i\n", period);
-      }
+      shiftString(queueData);
+      period = atoi(queueData);
+      printf("Period of LED 2 changed to: %i\n", period);
     }
     gpio_set_level(LED2, 0);
     vTaskDelay(period / portTICK_PERIOD_MS);
@@ -103,14 +100,11 @@ void BlinkLED3(void *pvParameters)
   while (1)
   {
     char queueData[64];
-    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(1000)) == pdPASS)
+    if (xQueueReceive(led3Queue, &queueData, pdMS_TO_TICKS(100)) == pdPASS)
     {
-      if (queueData[0] == '3')
-      {
-        shiftString(queueData);
-        period = atoi(queueData);
-        printf("Period of LED 3 changed to: %i\n", period);
-      }
+      shiftString(queueData);
+      period = atoi(queueData);
+      printf("Period of LED 3 changed to: %i\n", period);
     }
     gpio_set_level(LED3, 0);
     vTaskDelay(period / portTICK_PERIOD_MS);
@@ -129,14 +123,11 @@ void BlinkLED4(void *pvParameters)
   while (1)
   {
     char queueData[64];
-    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(1000)) == pdPASS)
+    if (xQueueReceive(led4Queue, &queueData, pdMS_TO_TICKS(100)) == pdPASS)
     {
-      if (queueData[0] == '4')
-      {
-        shiftString(queueData);
-        period = atoi(queueData);
-        printf("Period of LED 4 changed to: %i\n", period);
-      }
+      shiftString(queueData);
+      period = atoi(queueData);
+      printf("Period of LED 4 changed to: %i\n", period);
     }
     gpio_set_level(LED4, 0);
     vTaskDelay(period / portTICK_PERIOD_MS);
@@ -149,7 +140,7 @@ char received_message[64];
 int message_index = 0;
 int selected_led = 0;
 // Read data dari UART
-void readUART()
+void readUART(void *pvParameters)
 {
   while (1)
   {
@@ -178,7 +169,14 @@ void readUART()
     }
     if (data == ' ' && message_index > 0)
     {
-      xQueueSend(ledQueue, received_message, portMAX_DELAY);
+      if (selected_led == '1')
+        xQueueSend(led1Queue, &received_message, portMAX_DELAY);
+      if (selected_led == '2')
+        xQueueSend(led2Queue, &received_message, portMAX_DELAY);
+      if (selected_led == '3')
+        xQueueSend(led3Queue, &received_message, portMAX_DELAY);
+      if (selected_led == '4')
+        xQueueSend(led4Queue, &received_message, portMAX_DELAY);
       vTaskDelay(100 / portTICK_PERIOD_MS);
       selected_led = 0;
       printf("Sent queue data: %s\n", received_message);
@@ -206,7 +204,10 @@ void app_main(void)
 
   // Membuat Queue untuk UART dan LED
   uartQueue = xQueueCreate(10, sizeof(char[64]));
-  ledQueue = xQueueCreate(10, sizeof(char[64]));
+  led1Queue = xQueueCreate(10, sizeof(char[64]));
+  led2Queue = xQueueCreate(10, sizeof(char[64]));
+  led3Queue = xQueueCreate(10, sizeof(char[64]));
+  led4Queue = xQueueCreate(10, sizeof(char[64]));
 
   // Membuat Task untuk Blink LED 1 hingga 4
   xTaskCreate(&BlinkLED1, "BlinkLED1", 2048, NULL, 5, NULL);
