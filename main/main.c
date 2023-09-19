@@ -22,10 +22,12 @@ QueueHandle_t ledQueue;
 #define LED3 14
 #define LED4 27
 
-void shiftString(char *str) {
+void shiftString(char *str)
+{
   int len = strlen(str);
-  for (int i = 0; i < len; i++) {
-    str[i] = str[i+1];
+  for (int i = 0; i < len; i++)
+  {
+    str[i] = str[i + 1];
   }
   str[len] = '\0';
 }
@@ -49,7 +51,7 @@ void BlinkLED1(void *pvParameters)
   while (1)
   {
     char queueData[64];
-    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(100)) == pdPASS && period > 0)
+    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(1000)) == pdPASS)
     {
       if (queueData[0] == '1')
       {
@@ -71,12 +73,23 @@ void BlinkLED2(void *pvParameters)
   (void)pvParameters;
   gpio_pad_select_gpio(LED2);
   gpio_set_direction(LED2, GPIO_MODE_OUTPUT);
+  uint16_t period = 200;
   while (1)
   {
+    char queueData[64];
+    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(1000)) == pdPASS)
+    {
+      if (queueData[0] == '2')
+      {
+        shiftString(queueData);
+        period = atoi(queueData);
+        printf("Period of LED 2 changed to: %i\n", period);
+      }
+    }
     gpio_set_level(LED2, 0);
-    vTaskDelay(200 / portTICK_PERIOD_MS);
+    vTaskDelay(period / portTICK_PERIOD_MS);
     gpio_set_level(LED2, 1);
-    vTaskDelay(200 / portTICK_PERIOD_MS);
+    vTaskDelay(period / portTICK_PERIOD_MS);
   }
 }
 
@@ -86,12 +99,23 @@ void BlinkLED3(void *pvParameters)
   (void)pvParameters;
   gpio_pad_select_gpio(LED3);
   gpio_set_direction(LED3, GPIO_MODE_OUTPUT);
+  uint16_t period = 300;
   while (1)
   {
+    char queueData[64];
+    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(1000)) == pdPASS)
+    {
+      if (queueData[0] == '3')
+      {
+        shiftString(queueData);
+        period = atoi(queueData);
+        printf("Period of LED 3 changed to: %i\n", period);
+      }
+    }
     gpio_set_level(LED3, 0);
-    vTaskDelay(300 / portTICK_PERIOD_MS);
+    vTaskDelay(period / portTICK_PERIOD_MS);
     gpio_set_level(LED3, 1);
-    vTaskDelay(300 / portTICK_PERIOD_MS);
+    vTaskDelay(period / portTICK_PERIOD_MS);
   }
 }
 
@@ -101,12 +125,23 @@ void BlinkLED4(void *pvParameters)
   (void)pvParameters;
   gpio_pad_select_gpio(LED4);
   gpio_set_direction(LED4, GPIO_MODE_OUTPUT);
+  uint16_t period = 400;
   while (1)
   {
+    char queueData[64];
+    if (xQueueReceive(ledQueue, &queueData, pdMS_TO_TICKS(1000)) == pdPASS)
+    {
+      if (queueData[0] == '4')
+      {
+        shiftString(queueData);
+        period = atoi(queueData);
+        printf("Period of LED 4 changed to: %i\n", period);
+      }
+    }
     gpio_set_level(LED4, 0);
-    vTaskDelay(400 / portTICK_PERIOD_MS);
+    vTaskDelay(period / portTICK_PERIOD_MS);
     gpio_set_level(LED4, 1);
-    vTaskDelay(400 / portTICK_PERIOD_MS);
+    vTaskDelay(period / portTICK_PERIOD_MS);
   }
 }
 
@@ -121,26 +156,38 @@ void readUART()
     char data;
     uart_read_bytes(UART_NUM_0, &data, 1, portMAX_DELAY);
     printf("%c\n", data);
-    if (data == '1' && selected_led == 0)
+    if (message_index == 0)
     {
-      selected_led = 1;
-      printf("Changing Period of LED 1\n");
-    }
-    if (selected_led == 1)
-    {
-      if (data == ' ')
+      selected_led = data;
+      if (selected_led == '1')
       {
-        received_message[message_index] = '\0';
-        xQueueSend(ledQueue, received_message, portMAX_DELAY);
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-        message_index = 0;
-        selected_led = 0;
-        emptyString(received_message);
-        continue;
+        printf("Changing period of LED 1\n");
       }
-      received_message[message_index] = data;
-      message_index++;
+      if (selected_led == '2')
+      {
+        printf("Changing period of LED 2\n");
+      }
+      if (selected_led == '3')
+      {
+        printf("Changing period of LED 3\n");
+      }
+      if (selected_led == '4')
+      {
+        printf("Changing period of LED 4\n");
+      }
     }
+    if (data == ' ' && message_index > 0)
+    {
+      xQueueSend(ledQueue, received_message, portMAX_DELAY);
+      vTaskDelay(100 / portTICK_PERIOD_MS);
+      selected_led = 0;
+      printf("Sent queue data: %s\n", received_message);
+      emptyString(received_message);
+      message_index = 0;
+      continue;
+    }
+    received_message[message_index] = data;
+    message_index++;
   }
 }
 
